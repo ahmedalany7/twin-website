@@ -1,0 +1,58 @@
+# GitHub Pages deployment of the Twin site. Lives in the SEPARATE public site repository (node scripts/build-site.mjs --final --site-repo <folder> writes it there).
+# It publishes the folder `public/` exactly as committed: nothing is built on GitHub, so what you reviewed locally and committed is what goes live.
+# Before it uploads anything it REFUSES (the run fails, nothing is published) if public/ holds a draft page (the draft notice, a highlighted
+# "[يحتاج تأكيد]/[TO CONFIRM]/[TO DECIDE]/[قرار]" marker, a "Draft 0.1" note, noindex) or a file that is not part of the site, or if the repository holds app code or a
+# secret-like file. This is a second lock behind `build-site.mjs --final`, never a replacement for it.
+# One-time setup in the site repository: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"; the custom domain is typed in the same page
+# (with this kind of workflow GitHub IGNORES a CNAME file: the domain is only the one saved in Settings).
+# Versions of the actions below are the ones known when this was written; check the current ones on the action pages before relying on them.
+name: Deploy the Twin site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Refuse drafts, app code and secret-like files
+        run: |
+          set -eu
+          test -f public/index.html
+          if grep -rIlE 'class="sitedraft"|<span class="tbc">|\[(يحتاج تأكيد|TO CONFIRM|TO DECIDE|قرار)|مسودة 0\.1|Draft 0\.1|DRAFT – not published|name="robots" content="noindex' public; then
+            echo "A draft page is in public/: it must not be published (build with --final)."
+            exit 1
+          fi
+          if find . -path ./.git -prune -o -type f \( -name '.env*' -o -name '*.jks' -o -name '*.p12' -o -name '*.key' -o -name 'google-services.json' -o -name 'package.json' -o -name 'app.config.ts' -o -name '*.sql' -o -name '*.ts' -o -name '*.tsx' \) -print | grep -q .; then
+            echo "App code or a secret-like file is in this repository."
+            exit 1
+          fi
+          if find public -type f ! \( -name '*.html' -o -name '*.css' -o -name '*.svg' -o -name 'robots.txt' -o -name 'CNAME' -o -name '.nojekyll' -o -name '.twin-site-build' \) -print | grep -q .; then
+            echo "public/ holds a file that is not part of the site."
+            exit 1
+          fi
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

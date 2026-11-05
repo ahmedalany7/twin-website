@@ -1,0 +1,12 @@
+# The site repository is PUBLIC and holds only the built site: everything is ignored except the four paths below, so `git add .` can never pick up
+# anything else (app code, an .env file, keys, notes). Use `git add -f` on purpose only if you really mean it (you should not).
+/*
+!/.gitignore
+!/README.md
+!/.github/
+!/public/
+.env
+.env.*
+*.key
+*.jks
+*.p12
