@@ -3,6 +3,7 @@
 # Before it uploads anything it REFUSES (the run fails, nothing is published) if public/ holds a draft page (the draft notice, a highlighted
 # "[يحتاج تأكيد]/[TO CONFIRM]/[TO DECIDE]/[قرار]" marker, a "Draft 0.1" note, noindex) or a file that is not part of the site, or if the repository holds app code or a
 # secret-like file. This is a second lock behind `build-site.mjs --final`, never a replacement for it.
+# The only pictures allowed are the daily puzzle's photos, as public/puzzle/<id>.jpg (scripts/fetch-puzzle-photos.mjs writes them).
 # One-time setup in the site repository: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"; the custom domain is typed in the same page
 # (with this kind of workflow GitHub IGNORES a CNAME file: the domain is only the one saved in Settings).
 # Versions of the actions below are the ones known when this was written; check the current ones on the action pages before relying on them.
@@ -43,7 +44,7 @@ jobs:
             echo "App code or a secret-like file is in this repository."
             exit 1
           fi
-          if find public -type f ! \( -name '*.html' -o -name '*.css' -o -name '*.svg' -o -name 'robots.txt' -o -name 'CNAME' -o -name '.nojekyll' -o -name '.twin-site-build' \) -print | grep -q .; then
+          if find public -type f ! -path 'public/puzzle/*.jpg' ! \( -name '*.html' -o -name '*.css' -o -name '*.svg' -o -name 'robots.txt' -o -name 'CNAME' -o -name '.nojekyll' -o -name '.twin-site-build' \) -print | grep -q .; then
             echo "public/ holds a file that is not part of the site."
             exit 1
           fi
